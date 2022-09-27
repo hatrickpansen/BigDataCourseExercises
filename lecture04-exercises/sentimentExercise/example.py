@@ -15,22 +15,36 @@ conf = SparkConf().set('spark.executor.cores', 1).set('spark.cores.max',1).set('
 sc = SparkContext(master='spark://spark-master:7077', appName='myAppName', conf=conf)
 
 # TODO: HINT! Remove select_words and define a function to return an integer based on the sentiment of the input word
-select_words = lambda s : s[1] > 400
+# select_words = lambda s : s[1] > 400
+def sentiment(word):
+    if word in positiveWords:
+        return 1
+    elif word in negativeWords:
+        return -1
+    return 0
+
 
 files = "hdfs://namenode:9000/stream-in/"
 # Read in all files in the directory
 txtFiles = sc.wholeTextFiles(files, 20)
+print(txtFiles.toDebugString())
 # Take the content of the files and split them
 all_word = txtFiles.flatMap(lambda s: s[1].split())
 
 # TODO: HINT! Replace the implementation for word_map to run a function on each word, will return an RDD of just integers (basically a list of just integers)
 # Change from list of words to list of (word, 1)
-word_map = all_word.map(lambda s: (s, 1))
+#word_map = all_word.map(lambda s: (s, 1))
+word_map = all_word.map(lambda s: (s, sentiment(s)))
 
 # TODO: HINT! Remove the rest of this code, and create and print the result by reducing the word_map with the operator "add"
 # Merge values with equal keys
 word_reduce = word_map.reduceByKey(lambda s, t: s+t)
+
+top_words = word_reduce.sortBy(lambda s: s[1])
+
+print(top_words.collect())
+""" word_reduce = word_map.reduceByKey(lambda s, t: s+t)
 # Filter using the defined lambda and sort by value
 top_words = word_reduce.filter(select_words).sortBy(lambda s: s[1])
 # Collect to a Python list and print
-print(top_words.collect())
+print(top_words.collect()) """
